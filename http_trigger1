@@ -1,0 +1,59 @@
+import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import azure.functions as func
+
+def send_email(subject, message, to_email, from_email, smtp_server, smtp_port, smtp_user, smtp_password):
+    # Set up the email content
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(message, 'plain'))
+
+    # Send the email
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        text = msg.as_string()
+        server.sendmail(from_email, to_email, text)
+        server.quit()
+        logging.info("Email sent successfully")
+    except Exception as e:
+        logging.error(f"Failed to send email: {e}")
+
+def main(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger function received a request.')
+
+    try:
+        req_body = req.get_json()
+    except ValueError:
+        return func.HttpResponse(
+            "Invalid input",
+            status_code=400
+        )
+
+    subject = req_body.get('subject')
+    message = req_body.get('message')
+
+    if not subject or not message:
+        return func.HttpResponse(
+            "Please provide both subject and message in the request body",
+            status_code=400
+        )
+
+    # Set up your email details
+    email_test = os.environ.get("email_name")
+    from_email = email_test
+    to_email = email_test
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+    smtp_user = email_test
+    smtp_password = os.environ.get("email_password")
+
+    # Send the email
+    send_email(subject, message, to_email, from_email, smtp_server, smtp_port, smtp_user, smtp_password)
+
+    return func.HttpResponse("Email sent successfully!", status_code=200)
